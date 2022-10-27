@@ -1,12 +1,8 @@
+import 'package:app/models/country.dart';
+import 'package:app/pages/city.dart';
 import 'package:app/widgets/row_loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-class Country {
-  late String name;
-
-  Country(this.name);
-}
 
 class PageCountry extends StatefulWidget {
   const PageCountry({super.key});
@@ -60,6 +56,14 @@ class _PageCountryState extends State<PageCountry> {
                 title: Text(countries[index].name),
                 trailing: const Icon(
                   Icons.chevron_right,
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PageCity(
+                      country: countries[index],
+                    ),
+                  ),
                 ),
               ),
             ),
