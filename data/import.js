@@ -66,7 +66,7 @@ class Import {
             item => {
                 const doc = this.#db.collection(collectionName).doc()
 
-                batch.create(doc, item)
+                batch.set(doc, item)
             }
         )
 
@@ -79,6 +79,7 @@ class Import {
         const limit = 500
 
         console.log('countries: %d', this.#countries.length)
+        console.log('cities: %d', this.#cities.length)
 
         for (let i = 0; i < this.#countries.length; i += limit) {
             const chunk = this.#countries.slice(i, i + limit)
