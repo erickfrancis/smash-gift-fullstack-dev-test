@@ -1,7 +1,7 @@
 class City {
   late String name;
   late String country;
-  late String geonameid;
+  late int geonameid;
 
   City({
     required this.name,
