@@ -17,6 +17,7 @@ class _PageCityState extends State<PageCity> {
   late FirebaseFirestore firestore;
   Country get country => widget.country;
 
+  bool showCount = false;
   bool loading = false;
   List<City> cities = [];
 
@@ -24,17 +25,26 @@ class _PageCityState extends State<PageCity> {
     firestore
         .collection('city')
         .where('country', isEqualTo: country.name)
+        .orderBy('name')
         .get()
         .then((event) {
       List<City> items = [];
       for (var doc in event.docs) {
+        int? geonameid;
+
+        if (doc.get('geonameid') is String) {
+          geonameid = int.tryParse(
+            doc.get('geonameid'),
+          );
+        } else if (doc.get('geonameid') is int) {
+          geonameid = doc.get('geonameid');
+        }
+
         items.add(
           City(
             name: doc.get('name'),
             country: doc.get('country'),
-            geonameid: int.tryParse(
-              doc.get('geonameid'),
-            ),
+            geonameid: geonameid,
           ),
         );
       }
@@ -58,17 +68,27 @@ class _PageCityState extends State<PageCity> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cities'),
+        title: Text(
+          country.name,
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
           child: ListTile(
             title: Text(
-              country.name,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(color: Colors.white),
+              'Quantas cidades tem ao total?',
+              style: Theme.of(context).textTheme.titleSmall,
             ),
+            onTap: () => setState(() {
+              showCount = !showCount;
+            }),
+            trailing: showCount
+                ? Text(
+                    cities.length.toString(),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  )
+                : const Icon(
+                    Icons.remove_red_eye,
+                  ),
           ),
         ),
       ),
