@@ -21,7 +21,11 @@ class _PageCityState extends State<PageCity> {
   List<City> cities = [];
 
   fetch() {
-    firestore.collection('city').get().then((event) {
+    firestore
+        .collection('city')
+        .where('country', isEqualTo: country.name)
+        .get()
+        .then((event) {
       List<City> items = [];
       for (var doc in event.docs) {
         items.add(
