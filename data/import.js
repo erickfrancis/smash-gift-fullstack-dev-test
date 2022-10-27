@@ -1,5 +1,6 @@
-const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
-const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const fs = require('fs')
 
 const serviceAccount = require('./config/firebase_credentials.json');
 
@@ -18,62 +19,100 @@ class Import {
     }
 
     async parser(csvPath) {
+
+        const csvParse = require('csv-parse/sync')
+
+        const file = fs.readFileSync(csvPath, 'utf8');
+
+        const records = csvParse.parse(
+            file,
+            {
+                columns: true,
+                trim: true
+            }
+        )
+    
         await Promise.all([
-            this.parserCountries(csvPath),
-            this.parserCities(csvPath),
+            this.parserCountries(records),
+            this.parserCities(records),
         ])
 
         return this
     }
 
-    async parserCountries(csvPath) {
-        this.#countries.push({
-            name: 'Brazil'
-        })
+    async parserCountries(records) {
+        this.#countries = records
+            .map( record => record.country )
+            .sort((a, b) => a - b)
+            // Unique
+            .filter((value, index, self) =>  self.indexOf(value) === index)
+            .map(
+                country => ({
+                    name: country
+                })
+            )            
+        
+        return this.#countries
     }
 
-    async parserCities(csvPath) {
-        this.#cities.push({
-            name: 'Brasília',
-            country: 'Brazil',
-            geonameid: 123
-        })
+    async parserCities(records) {
+        this.#cities = records
     }
 
-    async upload() {
+    async batch(collectionName, items){
         const batch = this.#db.batch()
 
-        const countryDb = this.#db.collection('country')
+        items.forEach(
+            item => {
+                const doc = this.#db.collection(collectionName).doc()
 
-        this.#countries.forEach(
-            country => {
-                const doc = countryDb.doc()
-                batch.set(doc, {
-                    name: country.name
-                })
-            }
-        )
-
-        const cityDb = this.#db.collection('city')
-
-        this.#cities.forEach(
-            city => {
-                const doc = cityDb.doc()
-                batch.set(doc, {
-                    name: city.name,
-                    country: city.country,
-                    geonameid: city.geonameid
-                })
+                batch.create(doc, item)
             }
         )
 
         return batch.commit()
-            .then(() => {
-                console.log('\nSuccess!\n')
-
-                process.exit(0)
-            })
+            .then(console.log)
     }
+
+    async upload() {
+
+        const limit = 500
+
+        console.log('countries: %d', this.#countries.length)
+
+        for (let i = 0; i < this.#countries.length; i += limit) {
+            const chunk = this.#countries.slice(i, i + limit)
+
+            await this.batch(
+                'country',
+                chunk.map(
+                    country => ({
+                        name: country.name
+                    })
+                )
+            )
+        }
+
+        for (let i = 0; i < this.#cities.length; i += limit) {
+            const chunk = this.#cities.slice(i, i + limit)
+
+            await this.batch(
+                'city',
+                chunk.map(
+                    city => ({
+                        name: city.name,
+                        country: city.country,
+                        geonameid: city.geonameid
+                    })
+                )
+            )
+        }
+
+        console.log('\nSuccess!\n')
+
+        process.exit(0)
+    }
+
 }
 
 const runner = new Import(
