@@ -32,7 +32,9 @@ class _PageCityState extends State<PageCity> {
           City(
             name: doc.get('name'),
             country: doc.get('country'),
-            geonameid: doc.get('geonameid'),
+            geonameid: int.tryParse(
+              doc.get('geonameid'),
+            ),
           ),
         );
       }
